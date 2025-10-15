@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel - Awang Offcial</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyANHUpvv3qKDmtVf71EcM_rhkeJ06SPl5E",
+      authDomain: "aris-b2679.firebaseapp.com",
+      projectId: "aris-b2679",
+      storageBucket: "aris-b2679.appspot.com",
+      messagingSenderId: "1045219830979",
+      appId: "1:1045219830979:web:1083ff61d57a752e7f8676",
+      measurementId: "G-Z9C5327C9C"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const userList = document.getElementById("userList");
+
+    function renderUser(docId, data) {
+      const card = document.createElement("div");
+      card.className = "user-card";
+
+      card.innerHTML = `
+        <p>👤 <strong>${data.username}</strong></p>
+        <p>📱 Nomor HP: ${data.phone || "-"}</p>
+        <input type="text" placeholder="Password baru" id="newPw-${docId}" />
+        <button class="update-btn" onclick="updatePassword('${docId}')">🔄 Ubah Password</button>
+        <button class="delete-btn" onclick="deleteUser('${docId}')">❌ Hapus User</button>
+      `;
+
+      userList.appendChild(card);
+    }
+
+    async function fetchUsers() {
+      const querySnapshot = await getDocs(collection(db, "users"));
+      userList.innerHTML = "";
+
+      if (querySnapshot.empty) {
+        userList.innerHTML = "<p class='empty-msg'>Tidak ada user terdaftar.</p>";
+        return;
+      }
+
+      querySnapshot.forEach((doc) => {
+        renderUser(doc.id, doc.data());
+      });
+    }
+
+    window.updatePassword = async function (id) {
+      const input = document.getElementById(`newPw-${id}`);
+      const newPw = input.value.trim();
+      if (!newPw) return alert("Password tidak boleh kosong!");
+
+      await updateDoc(doc(db, "users", id), {
+        password: newPw
+      });
+
+      alert("Password diperbarui.");
+    }
+
+    window.deleteUser = async function (id) {
+      if (!confirm("Yakin ingin menghapus user ini?")) return;
+      await deleteDoc(doc(db, "users", id));
+      alert("User dihapus.");
+      fetchUsers();
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // cek role admin dari firestore jika perlu
+        const email = user.email;
+        if (email !== "aris@gmail.com") {
+          alert("Akses ditolak! Halaman hanya untuk admin.");
+          window.location.href = "login.html";
+          return;
+        }
+        fetchUsers();
+      } else {
+        alert("Silakan login sebagai admin.");
+        window.location.href = "login.html";
+      }
+    });
+  </script>
+
+  <style>
+    body {
+      background-color: #0e0e0e;
+      color: #00ff88;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #00ffaa;
+    }
+    .user-card {
+      background-color: #1b1b1b;
+      border-radius: 10px;
+      padding: 15px 20px;
+      margin-bottom: 15px;
+      box-shadow: 0 0 10px rgba(0,255,136,0.2);
+    }
+    .user-card strong {
+      color: #fff;
+    }
+    .delete-btn, .update-btn {
+      margin-top: 10px;
+      padding: 8px 15px;
+      background-color: #ff4444;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .update-btn {
+      background-color: #ffaa00;
+      margin-left: 10px;
+    }
+    .update-btn:hover {
+      background-color: #ffcc00;
+    }
+    .delete-btn:hover {
+      background-color: #ff0000;
+    }
+    input[type="text"] {
+      padding: 6px;
+      border: none;
+      border-radius: 6px;
+      margin-top: 5px;
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 5px;
+      background-color: #2b2b2b;
+      color: #fff;
+    }
+    .empty-msg {
+      text-align: center;
+      color: #888;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔐 Admin Panel - Data User</h1>
+  <div id="userList"></div>
+</body>
+</html>
